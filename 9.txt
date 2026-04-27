@@ -1,0 +1,113 @@
+Write a program to implement an Iterative sorting server using TCP such that client
+will send the unsorted data and server after sorting will response back to the client
+with sorted data
+
+
+server.c
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5001
+
+int main(){
+    int sd, nsd, clen, i, j, n;
+    struct sockaddr_in server, client;
+    int arr[100];
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    bind(sd, (struct sockaddr *)&server, sizeof(server));
+    listen(sd, 5);
+
+    while(1){
+        clen = sizeof(client);
+        nsd = accept(sd, (struct sockaddr *)&client, &clen);
+
+        // receive number of elements
+        read(nsd, &n, sizeof(n));
+
+        // receive array
+        read(nsd, arr, n * sizeof(int));
+
+        // sorting (bubble sort)
+        for(i = 0; i < n-1; i++){
+            for(j = 0; j < n-i-1; j++){
+                if(arr[j] > arr[j+1]){
+                    int temp = arr[j];
+                    arr[j] = arr[j+1];
+                    arr[j+1] = temp;
+                }
+            }
+        }
+
+        // send sorted array back
+        write(nsd, arr, n * sizeof(int));
+
+        close(nsd);
+    }
+
+    close(sd);
+    return 0;
+}
+
+client
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5001
+
+int main(){
+    int sd, n, i;
+    struct sockaddr_in server;
+    int arr[100];
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    connect(sd, (struct sockaddr *)&server, sizeof(server));
+
+    printf("Enter number of elements: ");
+    scanf("%d", &n);
+
+    printf("Enter elements:\n");
+    for(i = 0; i < n; i++){
+        scanf("%d", &arr[i]);
+    }
+
+    // send size
+    write(sd, &n, sizeof(n));
+
+    // send array
+    write(sd, arr, n * sizeof(int));
+
+    // receive sorted array
+    read(sd, arr, n * sizeof(int));
+
+    printf("Sorted array:\n");
+    for(i = 0; i < n; i++){
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+
+    close(sd);
+    return 0;
+}

@@ -1,0 +1,89 @@
+Write a program to develop a Concurrent ECHO server using UDP socket. Use at least two client programs to implement it.
+
+
+server
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 4560
+
+int main(){
+    int sd, pid, len;
+    struct sockaddr_in server, client;
+    char msg[512];
+
+    sd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    bind(sd, (struct sockaddr *)&server, sizeof(server));
+
+    while(1){
+        len = sizeof(client);
+
+        recvfrom(sd, msg, 512, 0, (struct sockaddr *)&client, &len);
+
+        pid = fork();
+
+        if(pid == 0){
+            // CHILD handles request
+            printf("Client: %s\n", msg);
+
+            sendto(sd, msg, strlen(msg)+1, 0, (struct sockaddr *)&client, len);
+
+            exit(0);
+        }
+    }
+
+    close(sd);
+    return 0;
+}
+
+
+client
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 4560
+
+int main(){
+    int sd, len;
+    struct sockaddr_in server;
+    char msg[512];
+
+    sd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    do{
+        printf("Client: ");
+        scanf("%s", msg);
+
+        sendto(sd, msg, strlen(msg)+1, 0, (struct sockaddr *)&server, sizeof(server));
+
+        len = sizeof(server);
+        recvfrom(sd, msg, 512, 0, (struct sockaddr *)&server, &len);
+
+        printf("Echo from server: %s\n", msg);
+
+    } while(strcmp(msg, "stop"));
+
+    close(sd);
+    return 0;
+}

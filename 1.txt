@@ -1,0 +1,32 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>   // fixed
+#include <stdlib.h>
+
+int main(){
+    int fd1, fd2[2], pid, n;
+    char str1[512], str2[512];   // fixed name
+
+    fd1 = open("text1.txt", O_RDWR | O_CREAT, 0764);   // fixed quotes
+    n = read(fd1, str1, 512);   // fixed variable
+
+    pipe(fd2);
+    pid = fork();
+
+    if(pid > 0){
+        close(fd2[0]);
+        write(fd2[1], str1, n);
+    }
+    else if(pid == 0){
+        close(fd2[1]);
+        read(fd2[0], str2, 512);
+        str2[n] = '\0';   // using same n (works here since fork copies memory)
+        puts(str2);
+    }
+    else{
+        printf("Error in fork()");
+        exit(0);
+    }
+
+    return 0;
+}

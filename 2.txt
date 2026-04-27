@@ -1,0 +1,100 @@
+Write a program to develop a Iterative Day- Time server using TCP socket.
+
+server side
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <time.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 4560
+
+int main(){
+    struct sockaddr_in client, server;
+    int sd, nsd;
+    socklen_t clen;
+    char msg[512], msg1[] = "Invalid request";
+    time_t ti;
+    char *ptr;
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+    bind(sd, (struct sockaddr *)&server, sizeof(server));
+    listen(sd, 5);
+
+    while(1){
+        clen = sizeof(client);
+        nsd = accept(sd, (struct sockaddr *)&client, &clen);
+
+        do{
+            memset(msg, 0, 512);
+            recv(nsd, msg, 512, 0);
+
+            if(!strcmp(msg, "time")){
+                ti = time(NULL);
+                ptr = ctime(&ti);
+                send(nsd, ptr, strlen(ptr)+1, 0);
+            }
+            else{
+                send(nsd, msg1, strlen(msg1)+1, 0);
+            }
+
+        } while(strcmp(msg, "stop"));
+
+        close(nsd);
+    }
+
+    close(sd);
+    return 0;
+}
+
+
+client side
+
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 4560
+
+int main(){
+    int sd;
+    struct sockaddr_in server;
+    char msg[512];
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+    connect(sd, (struct sockaddr *)&server, sizeof(server));
+
+    do{
+        printf("Enter a message: ");
+        scanf("%s", msg);
+
+        send(sd, msg, strlen(msg)+1, 0);
+        recv(sd, msg, 512, 0);
+
+        printf("Echoed from server: %s\n", msg);
+
+    } while(strcmp(msg, "stop"));
+
+    close(sd);
+    return 0;
+}

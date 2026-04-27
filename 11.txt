@@ -1,0 +1,89 @@
+Write a program to develop an Iterative ECHO server using TCP socket.
+
+server
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5003
+
+int main(){
+    int sd, nsd, clen;
+    struct sockaddr_in server, client;
+    char msg[512];
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    bind(sd, (struct sockaddr *)&server, sizeof(server));
+    listen(sd, 5);
+
+    while(1){
+        clen = sizeof(client);
+        nsd = accept(sd, (struct sockaddr *)&client, &clen);
+
+        do{
+            memset(msg, 0, 512);
+            read(nsd, msg, 512);
+
+            printf("Client: %s\n", msg);
+
+            // Echo back
+            write(nsd, msg, strlen(msg)+1);
+
+        } while(strcmp(msg, "stop"));
+
+        close(nsd);
+    }
+
+    close(sd);
+    return 0;
+}
+
+client
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5003
+
+int main(){
+    int sd;
+    struct sockaddr_in server;
+    char msg[512];
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    connect(sd, (struct sockaddr *)&server, sizeof(server));
+
+    do{
+        printf("Enter message: ");
+        scanf("%s", msg);
+
+        write(sd, msg, strlen(msg)+1);
+
+        read(sd, msg, 512);
+        printf("Echo from server: %s\n", msg);
+
+    } while(strcmp(msg, "stop"));
+
+    close(sd);
+    return 0;
+}

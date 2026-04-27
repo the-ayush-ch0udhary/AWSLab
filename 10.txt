@@ -1,0 +1,78 @@
+Write a program using TCP socket such that a client will accept a message from the user and send it to the server. The server will display the message and the IP address and port number of the client
+
+server
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5002
+
+int main(){
+    int sd, nsd, clen;
+    struct sockaddr_in server, client;
+    char msg[512];
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    bind(sd, (struct sockaddr *)&server, sizeof(server));
+    listen(sd, 5);
+
+    clen = sizeof(client);
+    nsd = accept(sd, (struct sockaddr *)&client, &clen);
+
+    read(nsd, msg, 512);
+
+    printf("Message from client: %s\n", msg);
+
+    // IMPORTANT PART
+    printf("Client IP: %s\n", inet_ntoa(client.sin_addr));
+    printf("Client Port: %d\n", ntohs(client.sin_port));
+
+    close(nsd);
+    close(sd);
+
+    return 0;
+}
+
+client
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5002
+
+int main(){
+    int sd;
+    struct sockaddr_in server;
+    char msg[512];
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero((char *)&server, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    connect(sd, (struct sockaddr *)&server, sizeof(server));
+
+    printf("Enter message: ");
+    scanf("%s", msg);
+
+    write(sd, msg, strlen(msg)+1);
+
+    close(sd);
+    return 0;
+}

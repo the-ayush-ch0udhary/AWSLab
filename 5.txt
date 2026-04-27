@@ -1,0 +1,100 @@
+Write a program to implement Sliding Window protocol with window size as 3
+
+client
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 4001
+
+int main(){
+    int sd, i, len;
+    struct sockaddr_in server;
+    char msg[512], window[10];
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    connect(sd, (struct sockaddr *)&server, sizeof(server));
+
+    printf("Enter message: ");
+    scanf("%s", msg);
+
+    len = strlen(msg);
+
+    // Sliding window of size 3
+    for(i = 0; i < len; i += 3){
+        memset(window, 0, sizeof(window));
+
+        int j;
+        for(j = 0; j < 3 && (i+j) < len; j++){
+            window[j] = msg[i+j];
+        }
+        window[j] = '\0';
+
+        printf("Sending frame: %s\n", window);
+
+        send(sd, window, strlen(window)+1, 0);
+
+        recv(sd, window, sizeof(window), 0);
+        printf("ACK received: %s\n", window);
+    }
+
+    // send stop
+    strcpy(window, "stop");
+    send(sd, window, strlen(window)+1, 0);
+
+    close(sd);
+    return 0;
+}
+
+
+server
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 4001
+
+int main(){
+    int sd, nsd, len;
+    struct sockaddr_in server, client;
+    char msg[512], ack[50] = "ACK";
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_port = htons(SERVER_PORT);
+
+    bind(sd, (struct sockaddr *)&server, sizeof(server));
+    listen(sd, 5);
+
+    len = sizeof(client);
+    nsd = accept(sd, (struct sockaddr *)&client, &len);
+
+    while(1){
+        memset(msg, 0, sizeof(msg));
+        recv(nsd, msg, sizeof(msg), 0);
+
+        if(strcmp(msg, "stop") == 0)
+            break;
+
+        printf("Frame received: %s\n", msg);
+
+        send(nsd, ack, strlen(ack)+1, 0);
+    }
+
+    close(nsd);
+    close(sd);
+    return 0;
+}
